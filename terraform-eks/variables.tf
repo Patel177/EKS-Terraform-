@@ -8,7 +8,11 @@ variable "vpc_cidr" {
   description = "default CIDR range of the VPC"
 }
 variable "aws_region" {
-  default = "us-west-1"
+  default = "eu-west-1"
   description = "aws region"
 }
 
+variable "name" {
+  default = "neel"
+  description = "eks name"
+}

@@ -1,44 +1,51 @@
-
 provider "aws" {
   region = var.aws_region
 }
 
-data "aws_availability_zones" "available" {}
+data "aws_availability_zones" "available" {
+  # Exclude local zones
+  filter {
+    name   = "opt-in-status"
+    values = ["opt-in-not-required"]
+  }
+}
 
 locals {
-  cluster_name = "abhi-eks-${random_string.suffix.result}"
+  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  tags = {
+    Example    = var.name
+    GithubRepo = "terraform-aws-eks"
+    GithubOrg  = "terraform-aws-modules"
+  }
 }
 
-resource "random_string" "suffix" {
-  length  = 8
-  special = false
-}
+################################################################################
+# VPC
+################################################################################
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.7.0"
+  version = "~> 6.0"
 
-  name                 = "abhi-eks-vpc"
-  cidr                 = var.vpc_cidr
-  azs                  = data.aws_availability_zones.available.names
-  private_subnets      = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets       = ["10.0.4.0/24", "10.0.5.0/24"]
-  enable_nat_gateway   = true
-  single_nat_gateway   = true
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+  name = var.name
+  cidr = var.vpc_cidr
 
-  tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-  }
+  azs             = local.azs
+  private_subnets = [for k, v in local.azs : cidrsubnet(var.vpc_cidr, 4, k)]
+  public_subnets  = [for k, v in local.azs : cidrsubnet(var.vpc_cidr, 8, k + 48)]
+  intra_subnets   = [for k, v in local.azs : cidrsubnet(var.vpc_cidr, 8, k + 52)]
+
+  enable_nat_gateway = true
+  single_nat_gateway = true
 
   public_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/elb"                      = "1"
+    "kubernetes.io/role/elb" = 1
   }
 
   private_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/internal-elb"             = "1"
+    "kubernetes.io/role/internal-elb" = 1
   }
+
+  tags = local.tags
 }

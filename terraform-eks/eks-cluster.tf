@@ -1,31 +1,35 @@
 module "eks" {
-  source          = "terraform-aws-modules/eks/aws"
-  version         = ">= 20.0"
-  cluster_name    = local.cluster_name
-  cluster_version = var.kubernetes_version
-  subnet_ids      = module.vpc.private_subnets
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 21.0"
+  name               = "${var.name}-2025"
+  kubernetes_version = "1.33"
+  endpoint_public_access = true
 
-  enable_irsa = true
-
-  tags = {
-    cluster = "demo"
+  # EKS Addons
+  addons = {
+    coredns = {}
+    eks-pod-identity-agent = {
+      before_compute = true
+    }
+    kube-proxy = {}
+    vpc-cni = {
+      before_compute = true
+    }
   }
 
-  vpc_id = module.vpc.vpc_id
-
-  eks_managed_node_group_defaults = {
-    ami_type               = "AL2_x86_64"
-    instance_types         = ["t3.medium"]
-    vpc_security_group_ids = [aws_security_group.all_worker_mgmt.id]
-  }
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
 
   eks_managed_node_groups = {
+    example = {
+      instance_types = ["t3.medium"]
+      ami_type       = "AL2023_x86_64_STANDARD"
 
-    node_group = {
-      min_size     = 2
-      max_size     = 6
+      min_size = 2
+      max_size = 5
       desired_size = 2
     }
   }
-}
 
+  tags = local.tags
+}
