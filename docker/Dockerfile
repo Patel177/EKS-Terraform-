@@ -2,9 +2,9 @@ FROM python:3.8-slim-buster
 
 WORKDIR /python-docker
 
-COPY ./app-code/requirements.txt requirements.txt
+COPY ../app-code/requirements.txt .
 RUN pip3 install -r requirements.txt
 
-COPY ./app-code/. .
+COPY ../app-code/. .
 
 CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0","--port=8080"]
