@@ -1,1 +1,88 @@
+name: Build and Push Docker Image to ECR (Manual Trigger)
 
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Custom image tag (optional)'
+        required: false
+        default: 'latest'
+      ecr_visibility:
+        description: 'ECR repository visibility'
+        required: false
+        default: 'private'
+        type: choice
+        options:
+        - private
+        - public
+
+env:
+  AWS_REGION: us-west-1
+  ECR_REPOSITORY: test-ecr-repo
+
+jobs:
+  build-and-push:
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          aws-region: ${{env.AWS_REGION}}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Check if ECR repository exists
+        id: check-ecr
+        run: |
+          if aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} > /dev/null 2>&1; then
+            echo "Repository exists"
+            echo "repository_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Repository does not exist"
+            echo "repository_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create ECR repository if it doesn't exist
+        if: steps.check-ecr.outputs.repository_exists == 'false'
+        run: |
+          if [ "${{ inputs.ecr_visibility || 'private' }}" == "private" ]; then
+            aws ecr create-repository \
+              --repository-name ${{ env.ECR_REPOSITORY }} \
+              --region ${{ env.AWS_REGION }} \
+              --image-scanning-configuration scanOnPush=true \
+              --image-tag-mutability MUTABLE
+            echo "Created PRIVATE ECR repository: ${{ env.ECR_REPOSITORY }}"
+          else
+            aws ecr-public create-repository \
+              --repository-name ${{ env.ECR_REPOSITORY }} \
+              --region us-east-1 \
+              --image-scanning-configuration scanOnPush=true \
+              --image-tag-mutability MUTABLE
+            echo "Created PUBLIC ECR repository: ${{ env.ECR_REPOSITORY }}"
+          fi
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ inputs.image_tag || 'latest' }}
+
+      - name: Output image URI
+        run: |
+          echo "Image pushed to:"
+          echo "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ inputs.image_tag || 'latest' }}"
