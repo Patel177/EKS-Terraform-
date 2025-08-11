@@ -42,26 +42,26 @@ jobs:
 
       # Step 4: Terraform Init (inside eks folder)
       - name: Terraform Init
-        working-directory: eks
+        working-directory: terraform-eks
         run: terraform init
 
       # Step 5: Terraform Validate
       - name: Terraform Validate
-        working-directory: eks
+        working-directory: terraform-eks
         run: terraform validate
 
       # Step 6: Conditional Terraform Actions
       - name: Terraform Plan
         if: ${{ github.event.inputs.action == 'plan' }}
-        working-directory: eks
+        working-directory: terraform-eks
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
         if: ${{ github.event.inputs.action == 'apply' }}
-        working-directory: eks
+        working-directory: terraform-eks
         run: terraform apply -auto-approve tfplan || terraform apply -auto-approve
 
       - name: Terraform Destroy
         if: ${{ github.event.inputs.action == 'destroy' }}
-        working-directory: eks
+        working-directory: terraform-eks
         run: terraform destroy -auto-approve
