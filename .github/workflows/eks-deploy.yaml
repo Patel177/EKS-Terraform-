@@ -52,12 +52,12 @@ jobs:
 
       # Step 6: Conditional Terraform Actions
       - name: Terraform Plan
-        if: ${{ github.event.inputs.action == 'plan' }}
+        if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' }}
         working-directory: terraform-eks
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        if: ${{ github.event.inputs.action == 'apply' }}
+        if: ${{ github.event.inputs.action == 'apply'  }}
         working-directory: terraform-eks
         run: terraform apply -auto-approve tfplan || terraform apply -auto-approve
 
