@@ -2,9 +2,9 @@ replicaCount: 1
 fullnameOverride: "neel-test"
 
 image:
-  repository: nginx
+  repository: 994682970526.dkr.ecr.us-west-1.amazonaws.com/test-ecr-repo:latest
   pullPolicy: IfNotPresent
-  tag: ""
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
