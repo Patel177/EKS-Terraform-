@@ -1,4 +1,5 @@
 replicaCount: 1
+fullnameOverride: "neel-test"
 
 image:
   repository: nginx
@@ -7,13 +8,12 @@ image:
 
 imagePullSecrets: []
 nameOverride: ""
-fullnameOverride: ""
 
 serviceAccount:
   create: true
   automount: true
   annotations: {}
-  name: ""
+  name: "neel-sa-test"
 
 
 podAnnotations: {}
@@ -27,7 +27,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 80
+  port: 8080
 
 ingress:
   enabled: false
