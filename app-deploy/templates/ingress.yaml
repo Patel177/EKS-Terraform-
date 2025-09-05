@@ -1,43 +1,22 @@
-{{- if .Values.ingress.enabled -}}
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "app-deploy.fullname" . }}
-  labels:
-    {{- include "app-deploy.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  name: {{ include "app-deploy.fullname" . }}-ingress
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: {{ .Values.ingress.albScheme }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/target-type: {{ .Values.ingress.targetType }}
 spec:
-  {{- with .Values.ingress.className }}
-  ingressClassName: {{ . }}
-  {{- end }}
-  {{- if .Values.ingress.tls }}
-  tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
-  {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
-      http:
+    - http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            {{- with .pathType }}
-            pathType: {{ . }}
-            {{- end }}
+          - path: /*
+            pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ include "app-deploy.fullname" $ }}
+                name: {{ include "app-deploy.fullname" . }}
                 port:
-                  number: {{ $.Values.service.port }}
-          {{- end }}
-    {{- end }}
+                  number: 80
 {{- end }}
