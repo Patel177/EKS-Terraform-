@@ -32,7 +32,8 @@ service:
 ingress:
   enabled: true               
   albScheme: internet-facing 
-  targetType: ip            
+  targetType: ip
+  port: 8080     
 
 
 resources: {}
